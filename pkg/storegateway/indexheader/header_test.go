@@ -107,9 +107,10 @@ func TestReaders(t *testing.T) {
 				fn := filepath.Join(tmpDir, id.String(), block.IndexHeaderFilename)
 				require.NoError(t, WriteBinary(ctx, bkt, id, fn))
 
-				br, err := NewBinaryReader(ctx, log.NewNopLogger(), nil, tmpDir, id, 3, cfg)
+				reader, err := NewBinaryReader(ctx, log.NewNopLogger(), nil, tmpDir, id, 3, cfg)
 				require.NoError(t, err)
 
+				br := reader.(*BinaryReader)
 				defer func() { require.NoError(t, br.Close()) }()
 
 				if id == id1 {
@@ -188,7 +189,7 @@ func TestReaders(t *testing.T) {
 				fn := filepath.Join(tmpDir, id.String(), block.IndexHeaderFilename)
 				require.NoError(t, WriteBinary(ctx, bkt, id, fn))
 
-				br, err := NewLazyBinaryReader(ctx, log.NewNopLogger(), nil, tmpDir, id, 3, BinaryReaderConfig{}, NewLazyBinaryReaderMetrics(nil), nil)
+				br, err := NewLazyBinaryReader(ctx, log.NewNopLogger(), nil, tmpDir, id, 3, BinaryReaderConfig{}, NewLazyBinaryReaderMetrics(nil), nil, DefaultReaderFactory)
 				require.NoError(t, err)
 
 				defer func() { require.NoError(t, br.Close()) }()
@@ -420,10 +421,11 @@ func benchmarkBinaryReaderLookupSymbol(b *testing.B, numSeries int) {
 	reader, err := NewBinaryReader(ctx, logger, bkt, tmpDir, id1, postingOffsetsInMemSampling, BinaryReaderConfig{})
 	require.NoError(b, err)
 
+	br := reader.(*BinaryReader)
 	// Get the offset of each label value symbol.
 	symbolsOffsets := make([]uint32, numSeries)
 	for i := 0; i < numSeries; i++ {
-		o, err := reader.symbols.ReverseLookup(strconv.Itoa(i))
+		o, err := br.symbols.ReverseLookup(strconv.Itoa(i))
 		require.NoError(b, err)
 
 		symbolsOffsets[i] = o
@@ -433,7 +435,7 @@ func benchmarkBinaryReaderLookupSymbol(b *testing.B, numSeries int) {
 
 	for n := 0; n < b.N; n++ {
 		for i := 0; i < len(symbolsOffsets); i++ {
-			if _, err := reader.LookupSymbol(symbolsOffsets[i]); err != nil {
+			if _, err := br.LookupSymbol(symbolsOffsets[i]); err != nil {
 				b.Fail()
 			}
 		}

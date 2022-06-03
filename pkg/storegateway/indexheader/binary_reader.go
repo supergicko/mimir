@@ -464,14 +464,16 @@ type BinaryReader struct {
 
 type BinaryReaderConfig struct {
 	MapPopulateEnabled bool `yaml:"map_populate_enabled" category:"experimental"`
+	ThreadPoolSize     uint `yaml:"thread_pool_size" category:"experimental"`
 }
 
 func (cfg *BinaryReaderConfig) RegisterFlagsWithPrefix(f *flag.FlagSet, prefix string) {
 	f.BoolVar(&cfg.MapPopulateEnabled, prefix+"map-populate-enabled", false, "If enabled, the store-gateway will attempt to pre-populate the file system cache when memory-mapping index-header files.")
+	f.UintVar(&cfg.ThreadPoolSize, prefix+"thread-pool-size", 0, "Number of dedicated OS threads to use for loading index header files from disk using mmap. Set to 0 to disable.")
 }
 
 // NewBinaryReader loads or builds new index-header if not present on disk.
-func NewBinaryReader(ctx context.Context, logger log.Logger, bkt objstore.BucketReader, dir string, id ulid.ULID, postingOffsetsInMemSampling int, cfg BinaryReaderConfig) (*BinaryReader, error) {
+func NewBinaryReader(ctx context.Context, logger log.Logger, bkt objstore.BucketReader, dir string, id ulid.ULID, postingOffsetsInMemSampling int, cfg BinaryReaderConfig) (Reader, error) {
 	binfn := filepath.Join(dir, id.String(), block.IndexHeaderFilename)
 	br, err := newFileBinaryReader(binfn, postingOffsetsInMemSampling, cfg)
 	if err == nil {
