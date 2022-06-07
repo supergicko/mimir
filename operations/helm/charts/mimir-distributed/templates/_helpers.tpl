@@ -165,9 +165,6 @@ app.kubernetes.io/managed-by: {{ .ctx.Release.Service }}
 {{/*
 POD labels
 */}}
-{{/*
-POD labels
-*/}}
 {{- define "mimir.podLabels" -}}
 {{- if .ctx.Values.enterprise.legacyLabels }}
 {{- if .component -}}
