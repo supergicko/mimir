@@ -1,0 +1,53 @@
+{{- if .Values.metaMonitoring.grafanaAgent.scrapeK8s }}
+{{- with .Values.serviceMonitor }}
+{{- if .enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "mimir.resourceName" (dict "ctx" $ "component" "k8s-kubelet-cadvisor") }}
+  namespace: {{ .namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "mimir.labels" (dict "ctx" $ "component" "k8s") | nindent 4 }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      {{- with .interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      path: /metrics/cadvisor
+      port: https-metrics
+      relabelings:
+        - replacement: "{{ include "mimir.clusterName" $ }}"
+          targetLabel: cluster
+        {{- with .relabelings }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      metricRelabelings: # TODO think of a smarter way
+        - action: keep
+          regex: (.*-mimir-)?alertmanager.*|(.*-mimir-)?compactor.*|(.*-mimir-)?distributor.*|(.*-mimir-)?(gateway|cortex-gw|cortex-gw).*|(.*-mimir-)?ingester.*|(.*-mimir-)?querier.*|(.*-mimir-)?query-frontend.*|(.*-mimir-)?query-scheduler.*|(.*-mimir-)?ruler.*|(.*-mimir-)?store-gateway.*
+          sourceLabels:
+            - pod
+      scheme: https
+      tlsConfig:
+        caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecureSkipVerify: false
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubelet
+{{- end -}}
+{{- end -}}
+{{- end }}
+

@@ -1574,6 +1574,10 @@ metaMonitoring:
     # -- Controls whether to install the Grafana Agent Operator
     installOperator: false
 
+    # -- Controls whether to scrape cadvisor, kubelet, and kube-state-metrics for metrics related to Mimir.
+    # The scraped metrics will be limited to ones concerning Mimir only: where pod
+    scrapeK8s: true
+
     logs:
       # -- Default destination for logs. The config here is translated to Promtail client
       # configuration to write logs to this Loki-compatible remote. Optional.
