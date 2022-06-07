@@ -1,0 +1,51 @@
+{{- if .Values.metaMonitoring.grafanaAgent.enabled }}
+{{- with .Values.metaMonitoring.grafanaAgent }}
+apiVersion: monitoring.grafana.com/v1alpha1
+kind: MetricsInstance
+metadata:
+  name: {{ include "mimir.resourceName" (dict "ctx" $ "component" "meta-monitoring") }}
+  namespace: {{ $.Values.metaMonitoring.grafanaAgent.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "mimir.labels" (dict "ctx" $ "component" "meta-monitoring" ) | nindent 4 }}
+spec:
+  remoteWrite:
+    {{- with .metrics.remote }}
+    - url: {{ .url }}
+      {{- if or .basicAuth.username .basicAuth.passwordSecretName }}
+      basicAuth:
+      {{- if .basicAuth.username }}
+        username:
+          name: {{ include "mimir.resourceName" (dict "ctx" $ "component" "metrics-instance-usernames") }}
+          key: default
+      {{- end }}
+      {{- if .basicAuth.passwordSecretName }}
+        password:
+          name: {{ .basicAuth.passwordSecretName }}
+          key: password
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- range $i, $cfg := .metrics.additionalRemoteWriteConfigs }}
+    - url: {{ $cfg.url }}
+      {{- if or $cfg.basicAuth.username $cfg.basicAuth.passwordSecretName }}
+      basicAuth:
+        {{- if $cfg.basicAuth.username }}
+        username:
+          name: {{ include "mimir.resourceName" (dict "ctx" $ "component" "metrics-instance-usernames") }}
+          key: additional-{{ $i }}
+        {{- end }}
+        {{- if $cfg.basicAuth.passwordSecretName }}
+        password:
+          name: {{ $cfg.basicAuth.passwordSecretName }}
+          key: password
+        {{- end }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+
+  serviceMonitorSelector:
+    # Scrape ServiceMonitors from all components
+    matchLabels:
+      {{- include "mimir.selectorLabels" (dict "ctx" $) | nindent 6 }}
+
+{{- end }}

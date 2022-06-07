@@ -1563,8 +1563,10 @@ gateway:
         hosts:
           - gateway.gem.example.com
 
-metamonitoring:
+metaMonitoring:
   grafanaAgent:
+    # -- Sets the namespace of the resources. Leave empty or unset to use the same namespace as the Helm release.
+    namespace: ''
     # -- Controls whether to create MetricsInstance, LogsInstance, and GrafanaAgent CRs to scrape the
     # ServiceMonitors of the chart and ship metrics to the remote_write endpoints below
     enabled: false
@@ -1579,10 +1581,10 @@ metamonitoring:
         url: ''
         basicAuth:
           username: ''
-          password: ''
+          # -- The value under key 'password' in this secret will be used as the basic authentication password.
+          passwordSecretName: ''
 
-      # -- Client configurations for the LogsInstance that will scrape Mimir pods. Follows the format of
-      # [`promtail.client`](https://grafana.com/docs/loki/latest/clients/promtail/configuration/#clients).
+      # -- Client configurations for the LogsInstance that will scrape Mimir pods. Follows the format of .remote.
       additionalClientConfigs: [ ]
 
     metrics:
@@ -1592,8 +1594,8 @@ metamonitoring:
         url: ''
         basicAuth:
           username: ''
-          password: ''
+          # The value under key 'password' in this secret will be used as the basic authentication password.
+          passwordSecretName: ''
 
-      # -- Additional remote-write for the MetricsInstance that will scrape Mimir pods. Follows the format of
-      # [Prometheus `remote_write`](https://prometheus.io/docs/prometheus/2.27/configuration/configuration/#remote_write)
+      # -- Additional remote-write for the MetricsInstance that will scrape Mimir pods. Follows the format of .remote.
       additionalRemoteWriteConfigs: [ ]
